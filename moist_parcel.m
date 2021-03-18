@@ -10,7 +10,7 @@ c_l     = 4190;         % heat capacity of liquid  (pressure cnst)
 c_i     = 2106;         % heat capacity of ice
 eps     = 1.61;         % R_v/R_d
 l_lvt   = 2.5008e6;     % latent heat (vapor -> liquid) at triple point
-p_ref   = 1000;         % reference pressure at surface
+p_ref   = 1000;         % reference pressure at surface (hectopascals)
 
 
 % initial conditions 
@@ -22,8 +22,10 @@ r_l(i) = 0;
 r_i(i) = 0;
 
 theta(i)   = T(i)*(p_ref/p(i))^(R_d/c_pd);
-theta_m(i) = T(i)*(p_ref/p(i))^(R_m(r_v(i))/c_pm(r_v(i)));   
-Hl(i) = H_l(p(i),T(i),r_v(i));       
+theta_m(i) = T(i)*(p_ref/p(i))^(R_m(r_v(i))/c_pm(r_v(i),0,0));   
+Hl(i) = min(2,H_l(p(i),T(i),r_v(i)));
+es(i) = e_star(T(i));
+ev(i) = eps^(-1)*r_v(i)*p(i)/(1+r_v(i)*eps);
 
 % pressure increment + final pressure
 dp = 1;      % hPa
@@ -34,8 +36,11 @@ while p(i) > p1
 
 % compute diagnostic variables
 theta(i)   = T(i)*(p_ref/p(i))^(R_d/c_pd);
-theta_m(i) = T(i)*(p_ref/p(i))^(R_m(r_v(i))/c_pm(r_v(i)));   
-Hl(i) = H_l(p(i),T(i),r_v(i));                       
+theta_m(i) = T(i)*(p_ref/p(i))^(R_m(r_v(i))/c_pm(r_v(i),0,0));   
+Hl(i) = min(2,H_l(p(i),T(i),r_v(i)));     
+es(i) = e_star(T(i));
+ev(i) = eps^(-1)*r_v(i)*p(i)/(1+r_v(i)*eps);
+
 
 % pressure + vapor update straightforwardly
 p(i+1)   = p(i)-dp;
@@ -43,17 +48,22 @@ r_v(i+1) = r_v(i);
 
 % compute temperature at next step from first law for mixed phase system
 % (152) (adapted to this simpler case)
-fun    = @(Tf) first_law1(p(i),p(i+1),T(i),Tf,r_v(i));
-T(i+1) = fzero(fun,T(i));  % l.h.s = 0
-
+%fun    = @(Tf) first_law1(p(i),p(i+1),T(i),Tf,r_v(i),r_v(i+1));
+%T(i+1) = fzero(fun,T(i));  % l.h.s = 0
+T(i+1) = exp(first_law1(p(i),p(i+1),T(i),T(i),r_v(i),r_v(i+1)));
 
 i = i+1;
 end
 
 theta(i)   = T(i)*(p_ref/p(i))^(R_d/c_pd);
-theta_m(i) = T(i)*(p_ref/p(i))^(R_m(r_v(i))/c_pm(r_v(i)));   
-Hl(i) = H_l(p(i),T(i),r_v(i));    
+theta_m(i) = T(i)*(p_ref/p(i))^(R_m(r_v(i))/c_pm(r_v(i),0,0));   
+Hl(i) = min(2,H_l(p(i),T(i),r_v(i)));    
+es(i) = e_star(T(i));
+ev(i) = eps^(-1)*r_v(i)*p(i)/(1+r_v(i)*eps);
 
+temp1    = T;
+theta1   = theta;
+theta_m1 = theta_m;
 
 
 %% plots

@@ -1,3 +1,5 @@
+cd '/Users/jordan/Documents/MATLAB/aos718'
+
 % physical parameters
 global eps 
 
@@ -12,12 +14,12 @@ r_i(i) = 0;
 r_t    = r_v(i) + r_l(i) + r_i(i);
 
 theta(i)   = T(i)*(p_ref/p(i))^(R_d/c_pd);
-theta_m(i) = T(i)*(p_ref/p(i))^(R_m(r_v(i))/c_pm(r_v(i)));   
+theta_m(i) = T(i)*(p_ref/p(i))^(R_m(r_v(i))/c_pm(r_v(i),r_l(i),0));   
 Hl(i) = H_l(p(i),T(i),r_v(i));       
 
 
 % pressure increment + final pressure
-dp = 10;      % hPa
+dp = 1;      % hPa
 p1 = 150;    % hPa
 
 % main loop: updates using first law for mixed systems
@@ -25,7 +27,7 @@ while p(i) > p1
     
 % first: compute diagnostic variables from last step.
 theta(i)   = T(i)*(p_ref/p(i))^(R_d/c_pd);
-theta_m(i) = T(i)*(p_ref/p(i))^(R_m(r_v(i))/c_pm(r_v(i)));   
+theta_m(i) = T(i)*(p_ref/p(i))^(R_m(r_v(i))/c_pm(r_v(i),r_l(i),0));   
 Hl(i) = H_l(p(i),T(i),r_v(i));            
 
 % pressure updates straightforwardly
@@ -49,7 +51,7 @@ while j < J && abs(T_new-T_old) > err
     % compute new temp given vapor/liquid mixing ratios
     %fun    = @(T) first_law2(p(i),p(i+1),T(i),T,r_v(i),rv_old);
     %T_new  = fzero(fun,T_old);
-    T_new = exp(first_law2(p(i),p(i+1),T(i),T_old,r_v(i),rv_old));
+    T_new = exp(first_law2(p(i),p(i+1),T(i),T_old,r_v(i),rv_old,r_l(i),rl_old,0,0));
     
     % compute vapor and liquid mixing ratios given new temp
     r_sat  = eps*e_star(T_new)/(p(i+1) - e_star(T_new));   % saturation ratio
@@ -76,8 +78,12 @@ i = i+1;
 end
 
 theta(i)   = T(i)*(p_ref/p(i))^(R_d/c_pd);
-theta_m(i) = T(i)*(p_ref/p(i))^(R_m(r_v(i))/c_pm(r_v(i)));   
+theta_m(i) = T(i)*(p_ref/p(i))^(R_m(r_v(i))/c_pm(r_v(i),r_l(i),0));   
 Hl(i) = H_l(p(i),T(i),r_v(i));      
+
+temp2    = T;
+theta2   = theta;
+theta_m2 = theta_m;
 
 
 %% plots 
@@ -107,7 +113,7 @@ ax2     = axes('Position',ax1_pos,...
             'YAxisLocation','right',...
             'Color','none');
 line(Hl, p,'Parent',ax2,'Color','k')
-line(r_v/r_t,p,'Parent',ax2,'Color','c')
+%line(r_v/r_t,p,'Parent',ax2,'Color','c')
 set(gca,'YDir','reverse')
 title('pressure vs. $T$, $\theta$ and $\theta_m$', 'Interpreter', 'latex', 'FontSize',24);
 xlabel('$H_l$','Interpreter','latex','FontSize',24)

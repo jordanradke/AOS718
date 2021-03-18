@@ -14,7 +14,7 @@ r_i(i) = 0;
 r_t    = r_v(i) + r_l(i) + r_i(i);
 
 theta(i)   = T(i)*(p_ref/p(i))^(R_d/c_pd);
-theta_m(i) = T(i)*(p_ref/p(i))^(R_m(r_v(i))/c_pm(r_v(i),r_l(i),r_i(i)));   
+theta_m(i) = T(i)*(p_ref/p(i))^(R_m(r_v(i))/c_pm(r_v(i),0,0));   
 Hl(i) = H_l(p(i),T(i),r_v(i));       
 
 
@@ -27,7 +27,7 @@ while p(i) > p1
     
 % first: compute diagnostic variables from last step.
 theta(i)   = T(i)*(p_ref/p(i))^(R_d/c_pd);
-theta_m(i) = T(i)*(p_ref/p(i))^(R_m(r_v(i))/c_pm(r_v(i),r_l(i),r_i(i)));   
+theta_m(i) = T(i)*(p_ref/p(i))^(R_m(r_v(i))/c_pm(r_v(i),0,0));   
 Hl(i) = H_l(p(i),T(i),r_v(i));            
 
 % pressure updates straightforwardly
@@ -41,38 +41,30 @@ J = 100;
 % initial guesses for vapor and liquid mixing ratios
 rv_old = r_v(i);
 rl_old = r_l(i);
-ri_old = r_i(i);
 T_old  = T(i);
 
 rv_new = rv_old;
 rl_new = rl_old;
-ri_new = ri_old;
 T_new  = T_old+1; % so you can enter the loop!
 
 while j < J && abs(T_new-T_old) > err
-    
     % compute new temp given vapor/liquid mixing ratios
-    T_new = exp(first_law2(p(i),p(i+1),T(i),T_old,r_v(i),rv_old,r_l(i),rl_old,r_i(i),ri_old));
+    %fun    = @(T) first_law2(p(i),p(i+1),T(i),T,r_v(i),rv_old);
+    %T_new  = fzero(fun,T_old);
+    T_new = exp(first_law4(p(i),p(i+1),T(i),T_old,r_v(i),rv_old,0,0,0,0));
     
     % compute vapor and liquid mixing ratios given new temp
-    r_sat  = eps*e_star(T_new)/(p(i+1) - e_star(T_new));   % saturation ratio
-    rl_new = max(0, r_t-r_sat);
+    r_sat  = eps*e_star(T_new)/(p(i+1) - e_star(T_new));     % saturation ratio
+    rv_new = min(r_sat,rv_old);
     
-    % enforce conservation of r_t + convert condensation to ice below 20C
-    if T(i) < 253.15 && rl_new > .001
-        rl_new = .001;
-        rv_new = min(r_t,r_sat);
-        ri_new = r_t - rl_new - rv_new;
-    else
-        dr_l   = rl_new - rl_old;
-        rv_new = rv_old - dr_l;     % dr_v = -dr_l
-    end
+    % enforce conservation of r_t
+    %dr_l   = rl_new - rl_old;
+    %rv_new = rv_old - dr_l;     % dr_v = -dr_l
     
     % update
     T_old  = T_new;
     rv_old = rv_new;
     rl_old = rl_new;
-    ri_old = ri_new;
     j = j+1;
 end
 
@@ -80,19 +72,18 @@ end
 T(i+1) = T_new;
 r_v(i+1) = rv_new;
 r_l(i+1) = rl_new;
-r_i(i+1) = ri_new;
 
 i = i+1;
 
 end
 
 theta(i)   = T(i)*(p_ref/p(i))^(R_d/c_pd);
-theta_m(i) = T(i)*(p_ref/p(i))^(R_m(r_v(i))/c_pm(r_v(i),r_l(i),r_i(i)));   
+theta_m(i) = T(i)*(p_ref/p(i))^(R_m(r_v(i))/c_pm(r_v(i),0,0));   
 Hl(i) = H_l(p(i),T(i),r_v(i));      
 
-temp3    = T;
-theta3   = theta;
-theta_m3 = theta_m;
+temp4    = T;
+theta4   = theta;
+theta_m4 = theta_m;
 
 
 %% plots 
@@ -130,15 +121,46 @@ ylabel('pressure', 'Interpreter','latex','FontSize',24)
 hold off
 
 
-% mixing ratios of all phases
+%% comparison of problems 1-5
+
+% temperature in C
 hold on
-plot(r_v,p)
-line(r_l,p,'Color','b')
-line(r_i,p,'Color','g')
-set(gca,'YDir','reverse')
+plot(temp1-273, p, 'r')
+plot(temp2-273, p, 'b')
+plot(temp3-273, p, 'g')
+plot(temp4-273, p, '--r')
+plot(temp5-273, p, '--b')
+set(gca, 'YDir','reverse')
+title('pressure vs. temperature', 'Interpreter', 'latex', 'FontSize',24);
+xlabel('temperature','Interpreter','latex','FontSize',24)
+ylabel('pressure', 'Interpreter','latex','FontSize',24)
 hold off
 
+% theta vs pressure
+hold on
+plot(theta1, p, 'r')
+plot(theta2, p, 'b')
+plot(theta3, p, 'g')
+plot(theta4, p, '--r')
+plot(theta5, p, '--b')
+set(gca, 'YDir','reverse')
+title('pressure vs. $\theta$', 'Interpreter', 'latex', 'FontSize',24);
+xlabel('$\theta$','Interpreter','latex','FontSize',24)
+ylabel('pressure', 'Interpreter','latex','FontSize',24)
+hold off
 
+% theta_m vs pressure
+hold on
+plot(theta_m1, p, 'r')
+plot(theta_m2, p, 'b')
+plot(theta_m3, p, 'g')
+plot(theta_m4, p, '--r')
+plot(theta_m5, p, '--b')
+set(gca, 'YDir','reverse')
+title('pressure vs. $\theta_m$', 'Interpreter', 'latex', 'FontSize',24);
+xlabel('$\theta_m$','Interpreter','latex','FontSize',24)
+ylabel('pressure', 'Interpreter','latex','FontSize',24)
+hold off
 
 
 

@@ -52,7 +52,7 @@ T_new  = T_old+1; % so you can enter the loop!
 while j < J && abs(T_new-T_old) > err
     
     % compute new temp given vapor/liquid mixing ratios
-    T_new = exp(first_law2(p(i),p(i+1),T(i),T_old,r_v(i),rv_old,r_l(i),rl_old,r_i(i),ri_old));
+    T_new = exp(first_law5(p(i),p(i+1),T(i),T_old,r_v(i),rv_old,r_l(i),rl_old,r_i(i),ri_old));
     
     % compute vapor and liquid mixing ratios given new temp
     r_sat  = eps*e_star(T_new)/(p(i+1) - e_star(T_new));   % saturation ratio
@@ -90,9 +90,10 @@ theta(i)   = T(i)*(p_ref/p(i))^(R_d/c_pd);
 theta_m(i) = T(i)*(p_ref/p(i))^(R_m(r_v(i))/c_pm(r_v(i),r_l(i),r_i(i)));   
 Hl(i) = H_l(p(i),T(i),r_v(i));      
 
-temp3    = T;
-theta3   = theta;
-theta_m3 = theta_m;
+
+temp5    = T;
+theta5   = theta;
+theta_m5 = theta_m;
 
 
 %% plots 
